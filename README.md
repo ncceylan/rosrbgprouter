@@ -24,17 +24,6 @@ lxc.mount.entry = /dev/net dev/net none bind,create=dir
 nano /etc/ssh/sshd_config
 service ssh restart
 ```
-### 设置东八区与中文
-```
-timedatectl set-timezone Asia/Shanghai
-# 追加本地语言配置
-echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen
-# 重新配置本地语言
-dpkg-reconfigure locales
-# 指定本地语言
-export LC_ALL="zh_CN.UTF-8"
-#中文的设置
-```
 ### 常用软件安装
 ```
 apt install zsh git vim curl -y
@@ -42,7 +31,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 ```
 ### 添加未知命令提示工具
 ```
-vim ~/.zshrc
+nano ~/.zshrc
 
 . /etc/zsh_command_not_found
 #在文件末尾添加以上内容
@@ -51,7 +40,7 @@ source ~/.zshrc
 #配置生效
 ```
 # 轻松搭建分流DNS服务器
-我们右键刚才建立好的模板，完整复制一个lxc容器，网络地址修改为172.16.0.2
+我们右键刚才建立好的模板，完整复制一个lxc容器，网络地址修改为192.168.10.153
 ```
 
 chmod +x dns.sh
@@ -77,99 +66,136 @@ sudo mosdns service restart
 ```
 # 透明网关的创建与设置
 ```
-chmod +x installclash.sh
+chmod +x installclashmeta.sh
 
-./installclash.sh
+./insclashmeta.sh
 至此，透明网关安装完成，我们接下来需要一份透明配置
 
+######### 锚点 start #######
+# proxy 相关
+pr: &pr {type: select, proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,DIRECT]}
+
+#这里是订阅更新和延迟测试相关的
+p: &p {type: http, interval: 3600, health-check: {enable: true, url: http://www.google.com/generate_204, interval: 300}}
+
+use: &use
+  type: select
+  use:
+  - provider1
+  - provider2
+
+######### 锚点 end #######
 
 
+# url 里填写自己的订阅,名称不能重复
+proxy-providers:
+  provider1:
+    <<: *p
+    url: ""
 
-# 订阅地址版本，需要将节点列表里的url换为你的订阅地址，支持那种打开是文件型的订阅地址
-interface-name: eth0
+  provider2:
+    <<: *p
+    url: ""
+
+mode: rule
 ipv6: false
-tun:
-    enable: true
-    stack: system
-    auto-detect-interface: false
-port: 7891
-socks-port: 7890
-redir-port: 7893
+log-level: info
 allow-lan: true
-profile:
-  # open tracing exporter API
-  tracing: true
-mode: Rule
-external-ui: /home/ui
-secret: '123456789'
+mixed-port: 7890
+unified-delay: false
+tcp-concurrent: true
 external-controller: 0.0.0.0:9090
-log-level: silent
-proxy-providers:
-  节点列表:
-   type: http
-   path: ./profiles/proxies/foo.yaml
-   url: 
-   interval: 3600 
-   filter: '倍率:1|专线'
-   health-check:
-     enable: true
-     url: http://www.gstatic.com/generate_204
-     interval: 300
- 
-proxy-groups:  
-  - name: PROXY
-    type: select
-    url: http://www.gstatic.com/generate_204
-    interval: 3600
-    use:
-      - 节点列表
-    proxies:
-      - DIRECT    
-rules:
-  - MATCH,PROXY
-
-
-
-# 本地文件版本，提前将下载或者转换好的配置文件重命名为1.yaml，放入/etc/clash/文件夹
-interface-name: eth0
-ipv6: false
-tun:
-    enable: true
-    stack: system
-    auto-detect-interface: true
-port: 7891
-socks-port: 7890
-redir-port: 7893
-allow-lan: true
-profile:
-  # open tracing exporter API
-  tracing: true
-mode: Rule
-external-ui: /home/ui
 secret: '123456789'
-external-controller: 0.0.0.0:9013
-log-level: silent
-proxy-providers:
-  节点列表:
-    type: file
-    path: /etc/clash/1.yaml
-    filter: ''
-    health-check:
-      enable: true
-      url: http://www.gstatic.com/generate_204
-      interval: 300    
- 
-proxy-groups:  
-  - name: PROXY
-    type: select
-    url: http://www.gstatic.com/generate_204
-    interval: 3600
-    use:
-      - 节点列表
-    proxies:
-      - DIRECT    
+
+geodata-mode: true
+geox-url:
+  geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+  tracing: true
+
+sniffer:
+  enable: true
+  sniff:
+    TLS:
+      ports: [443, 8443]
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+interface-name: eth0
+tun:
+  device: utun
+  enable: true
+  stack: system
+  auto-route: true
+  auto-detect-interface: false
+
+dns:
+  enable: true
+  listen: :1053
+  ipv6: false
+  enhanced-mode: redir-host
+  fake-ip-range: 28.0.0.1/8
+  fake-ip-filter:
+    - '*'
+    - '+.lan'
+    - '+.local'
+  default-nameserver:
+    - 192.168.10.9
+  nameserver:
+    - 192.168.10.9
+  proxy-server-nameserver:
+    - 192.168.10.9
+  nameserver-policy:
+    "geosite:cn,private":
+      - 192.168.10.9
+
+proxies:
+  # - name: "WARP"
+  #   type: wireguard
+  #   server: engage.cloudflareclient.com
+  #   port: 2408
+  #   ip: "172.16.0.2/32"
+  #   ipv6: "2606::1/128"        # 自行替换
+  #   private-key: "private-key" # 自行替换
+  #   public-key: "public-key"   # 自行替换
+  #   udp: true
+  #   reserved: "abba"           # 自行替换
+  #   mtu: 1280
+  #   dialer-proxy: "dns"
+  #   remote-dns-resolve: true
+  #   dns:
+  #     - https://dns.cloudflare.com/dns-query
+
+proxy-groups:
+
+  - {name: 默认, type: select, proxies: [DIRECT, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]}
+# - {name: dns, type: select, proxies: [DIRECT, WARP, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, 全部节点, 自动选择]}  # 加入 WARP  
+#分隔,下面是地区分组
+  - {name: 香港, <<: *use,filter: "(?i)港|hk|hongkong|hong kong"}
+
+  - {name: 台湾, <<: *use, filter: "(?i)台|tw|taiwan"}
+
+  - {name: 日本, <<: *use, filter: "(?i)日本|jp|japan"}
+
+  - {name: 美国, <<: *use, filter: "(?i)美|us|unitedstates|united states"}
+
+  - {name: 新加坡, <<: *use, filter: "(?i)(新|sg|singapore)"}
+
+  - {name: 其它地区, <<: *use, filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates)).*"}
+
+  - {name: 全部节点, <<: *use}
+
+  - {name: 自动选择, <<: *use, tolerance: 2, type: url-test}
+
 rules:
-  - MATCH,PROXY
+  # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOSITE,cn))),REJECT # quic
+
+  - MATCH,默认
 
 chmod +x installclash.sh
 
@@ -177,26 +203,7 @@ chmod +x installclash.sh
 至此，透明网关安装完成，我们接下来需要一份透明配置
 
 ```
-## 非本地ip表获取
-```
 
-cd /home
-
-chmod +x iplist.sh
-赋予权限
-
-./iplist.sh
-
-执行程序
-
-
-crontab -e
-
-
-
-0 5 * * * /bin/bash /home/iplist.sh
-
-```
 ## 路由地址宣告
 修改bird2配置文件为以下内容 ，文件在/etc/bird/bird.conf
 ```
@@ -230,6 +237,26 @@ protocol bgp {
         };
 }
 ```
+## 非本地ip表获取
+```
+
+cd /home
+
+chmod +x iplist.sh
+赋予权限
+
+./iplist.sh
+
+执行程序
+
+
+crontab -e
+
+
+
+0 5 * * * /bin/bash /home/iplist.sh
+
+```
 ## 透明网关启动
 ```
 sudo systemctl enable clash
@@ -250,6 +277,10 @@ sudo systemctl status clash
 /routing/bgp/connection
 add name=clash local.role=ebgp remote.address=192.168.10.100 .as=65531 routing-table=main router-id=192.168.10.5 as=65530 multihop=yes
 # 添加一个BGP连接，名称为clash，本地角色为ebgp，远程地址为192.168.10.100，自治系统号为65531，路由表为bypass，路由器ID为192.168.10.5，自治系统号为65530，启用多跳选项
+
+
+/ip firewall mangle add action=accept chain=prerouting src-address=192.168.10.100
+# 添加一个防火墙Mangle规则，动作为接受，链为prerouting，源地址为192.168.10.253
 
 ```
 ## 方式二
