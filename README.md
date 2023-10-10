@@ -197,6 +197,37 @@ rules:
 
   - MATCH,默认
 
+解压配置
+
+tar -xvf ./clash.meta.tar
+
+复制systemctl启动配置文件
+
+mv ./clash.service /etc/systemd/system
+
+配置防火墙iptables
+
+apt-get install iptables -y
+
+配置iptables
+
+
+bash ./iptablesConfig
+
+
+因为iptables重启后规则会丢失，所以需要开机重新导入规则。
+
+
+apt install iptables-persistent -y
+
+这里第一个提示的是IPV4的iptables配置的保存，第二个是V6的，看情况进行选择，因此教程只做v4 所以V6 就选NO 不保存。
+
+检测是否完整保存配置。
+
+cat /etc/iptables/rules.v4
+
+
+
 至此，透明网关安装完成，我们接下来需要一份透明配置
 
 ```
