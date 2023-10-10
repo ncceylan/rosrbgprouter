@@ -197,9 +197,6 @@ rules:
 
   - MATCH,默认
 
-chmod +x installclash.sh
-
-./installclash.sh
 至此，透明网关安装完成，我们接下来需要一份透明配置
 
 ```
