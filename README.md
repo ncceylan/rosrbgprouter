@@ -1,7 +1,5 @@
-# 相关交流群
-[电报群](https://t.me/+bzSRf6dtG3lhYWVl)
 # 基本原理
-- 利用pve lxc特性，建立透明网关与DNS解析服务器，占用资源小，性能高，稳定性好
+- 利用unraid lxc特性，建立透明网关与DNS解析服务器，占用资源小，性能高，稳定性好
 - 将透明网关生成的非本地路由表直接导入ROS，利用ROS通过路由表进行分流
 - 非本地路由表直接由透明网关进行访问，由tun网卡进行流量转发，理论上，性能更好
 - DNS选取easymosdns项目，解决dns污染与分流问题
@@ -14,30 +12,12 @@
 
 [基于路由协议的ip分流(RouterOS为例)](https://www.chiphell.com/thread-2438228-1-1.html)
 # 创建lxc容器模板
-## 乌班图下载
-```
-/var/lib/vz/template/cache
-#上传文件夹
-```
-## 容器创建
-取消特权容器勾选
-其他配置根据自己实际情况设定
-## 容器优化
-### 容器完善
-创建完成后容器，不要开机，进入对应容器的选项
-勾选一下选项
-- 嵌套
-- nfs
-- smb
-- fuse
+使用官方debian容器创建
 ### 容器配置文件
-进入pve控制台，进入/etc/pve/lxc文件夹，修改对应的配置文件，添加以下内容
+进入unriad控制台，进入/mnt/cache/lxc文件夹，修改对应的配置文件，添加以下内容
 ```
-lxc.apparmor.profile: unconfined
-lxc.cgroup.devices.allow: a
-lxc.cap.drop: 
-lxc.cgroup2.devices.allow: c 10:200 rwm
-lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+lxc.cgroup2.devices.allow = c 10:200 rwm
+lxc.mount.entry = /dev/net dev/net none bind,create=dir
 ```
 ### 开启第三方登录
 ```
@@ -62,7 +42,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 ```
 ### 添加未知命令提示工具
 ```
-nano ~/.zshrc
+vim ~/.zshrc
 
 . /etc/zsh_command_not_found
 #在文件末尾添加以上内容
@@ -71,7 +51,7 @@ source ~/.zshrc
 #配置生效
 ```
 # 轻松搭建分流DNS服务器
-我们右键刚才建立好的模板，完整复制一个lxc容器，网络地址修改为192.168.10.153
+我们右键刚才建立好的模板，完整复制一个lxc容器，网络地址修改为172.16.0.2
 ```
 
 chmod +x dns.sh
